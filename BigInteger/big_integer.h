@@ -10,11 +10,12 @@
 #include "vector.h"
 
 struct big_integer {
-    int sign;
+    char sign;
     vector<unsigned int> digits;
 
     big_integer();
     big_integer(int);
+    big_integer(char sign, vector<unsigned int> digits);
     explicit big_integer(const std::string&);
     big_integer(big_integer &&) = default;
     big_integer(const big_integer&) = default;
