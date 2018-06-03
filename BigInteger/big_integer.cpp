@@ -1,5 +1,6 @@
 #include "big_integer.h"
 #include <utility>
+#include <cassert>
 
 typedef unsigned int ui;
 typedef unsigned long long ull;
@@ -18,7 +19,7 @@ big_integer::big_integer(int x) {
     digits.push_back((ui) std::abs((long long)x));
 }
 
-big_integer::big_integer(char sign, vector<ui> digits) : sign(sign), digits(std::move(digits)) {
+big_integer::big_integer(char sign, uint_array const& digits) : sign(sign), digits(digits) {
     this->normalize();
 }
 
@@ -38,11 +39,10 @@ big_integer::big_integer(const std::string& s) {
 }
 
 big_integer operator+(const big_integer& a, const big_integer& b) {
-    big_integer ans;
     if (a.sign == b.sign) {
         ui propagate = 0;
-        ans.digits.resize(std::max(a.digits.size(), b.digits.size()), 0);
-        for (size_t i = 0; i < ans.digits.size(); i++) {
+        uint_array digits(std::max(a.digits.size(), b.digits.size()), 0);
+        for (size_t i = 0; i < digits.size(); i++) {
             ull result = 0;
             if (i >= b.digits.size()) {
                 result = (ull) a.digits[i] + propagate;
@@ -52,59 +52,49 @@ big_integer operator+(const big_integer& a, const big_integer& b) {
                 result = (ull) b.digits[i] + a.digits[i] + propagate;
             }
             propagate = (ui) (result >> 32u);
-            ans.digits[i] = (ui) result;
+            digits[i] = (ui) result;
         }
         if (propagate != 0)
-            ans.digits.push_back(propagate);
+            digits.push_back(propagate);
+        return big_integer(a.sign, digits);
     } else if (b.sign == -1) {
-        big_integer copy_b(b);
-        copy_b.sign = 1;
-        ans = a - copy_b;
+        return a - big_integer(1, b.digits);
     } else {
-        big_integer copy_a(a);
-        copy_a.sign = 1;
-        ans = b - copy_a;
+        return b - big_integer(1, a.digits);
     }
-    ans.normalize();
-    return ans;
 }
 
 big_integer operator-(const big_integer& a, const big_integer& b) {
-    big_integer ans;
     if (a.sign == b.sign) {
         if (b.less_than(a)) {
-            ans = a;
+            uint_array digits(a.digits);
             ui propagate = 0;
             for (size_t i = 0; i < b.digits.size(); i++) {
                 ull result = (ull) a.digits[i] -
                                             (ull) b.digits[i] - propagate;
                 propagate = (ui) (a.digits[i] < (ull) b.digits[i] + propagate);
-                ans.digits[i] = (ui) result;
+                digits[i] = (ui) result;
             }
             if (propagate != 0) {
-                ans.digits[b.digits.size()] -= propagate;
+                digits[b.digits.size()] -= propagate;
             }
+            return big_integer(a.sign, digits);
         } else if (a == b) {
             return big_integer(0);
         } else {
-            ans = b - a;
-            ans.sign = a.sign * char(-1);
+            big_integer ans = b - a;
+            ans.sign = a.sign * (char)-1;
+            return ans;
         }
     } else if (b.sign == -1) {
-        big_integer copy_b(b);
-        copy_b.sign = 1;
-        ans = a + copy_b;
+        return a + big_integer(1, b.digits);
     } else {
-        big_integer copy_b(b);
-        copy_b.sign = -1;
-        ans = a + copy_b;
+        return a + big_integer(-1, b.digits);
     }
-    ans.normalize();
-    return ans;
 }
 
 big_integer operator*(const big_integer& a, const big_integer& b) {
-    vector<ui> digits(a.digits.size() * b.digits.size(), 0);
+    uint_array digits(a.digits.size() * b.digits.size(), 0);
     ull result;
     ui pointer = 0;
     ui pt_copy = 0;
@@ -118,8 +108,7 @@ big_integer operator*(const big_integer& a, const big_integer& b) {
             ++pointer;
         }
         if (digits.size() <= pointer) {
-            digits.push_back(0);
-        }
+            digits.push_back(0);        }
         digits[pointer] += propagate;
         pointer = (++pt_copy);
     }
@@ -150,7 +139,7 @@ big_integer operator/(const big_integer& a, const big_integer& b) {
     copy_a.normalize();
     copy_b.normalize();
     size_t sz_a = copy_a.digits.size(), sz_b = copy_b.digits.size();
-    vector<ui> digits(sz_a - sz_b + 1, 0);
+    uint_array digits(sz_a - sz_b + 1, 0);
     big_integer dividend, divider;
     dividend.digits.assign(sz_b + 1, 0);
     for (size_t i = 0; i < sz_b; i++) {
@@ -162,12 +151,12 @@ big_integer operator/(const big_integer& a, const big_integer& b) {
         dividend.digits[0] = copy_a.digits[pos];
         ull p1 = MX * (sz_b < dividend.digits.size() ? dividend.digits[sz_b] : 0);
         ull p2 = (sz_b - 1 < dividend.digits.size() ? dividend.digits[sz_b - 1] : 0);
-        auto tmp = (ui)((p1 + p2) / copy_b.digits.back());
+        auto tmp = (ui)std::min(((p1 + p2) / copy_b.digits.back()), MX - 1);
         divider = copy_b;
         divider.mul(tmp);
         while (dividend.less_than(divider)) {
-            divider = copy_b;
-            divider.mul(--tmp);
+            --tmp;
+            divider -= copy_b;
         }
         dividend.sub(divider);
         for (size_t j = sz_b; j--;) {
@@ -206,9 +195,10 @@ big_integer operator<<(const big_integer& a, int b) {
     }
     ull propagate = 0;
     ull result = 0;
-    vector<ui> tmp((ui)b / 32, 0);
-    vector<ui> digits(a.digits);
-    digits.insert(digits.begin(), tmp.begin(), tmp.end());
+    uint_array digits((ui)b / 32 + a.digits.size(), 0);
+    for (size_t i = 0; i < a.digits.size(); ++i) {
+        digits[i + (ui)b / 32] = a.digits[i];
+    }
     if (b > 0) {
         for (ui &digit : digits) {
             result = ((ull) digit << (ui)b);
@@ -233,7 +223,10 @@ big_integer operator>>(const big_integer& a, int b) {
     ull propagate = 0;
     ull result = 0;
     size_t cnt = (ui)b / 32;
-    vector<ui> digits(a.digits.begin() + cnt, a.digits.end());
+    uint_array digits(a.digits.end() - a.digits.begin() + cnt);
+    for (size_t i = cnt; i < a.digits.size(); ++i) {
+        digits[i - cnt] = a.digits[i];
+    }
     b %= 32;
     if (b > 0) {
         for (size_t i = digits.size(); i--;) {
@@ -338,10 +331,7 @@ bool operator!=(const big_integer& a, const big_integer& b) {
 }
 
 big_integer big_integer::operator-() const  {
-    big_integer a(*this);
-    a.sign *= -1;
-    a.normalize();
-    return a;
+    return big_integer(this->sign * (char)-1, this->digits);
 }
 
 
@@ -412,7 +402,7 @@ big_integer bitwise_operator(const big_integer& a, const big_integer& b,
 }
 
 bool big_integer::is_zero() const {
-    return digits.size() == 1 && digits.front() == 0;
+    return digits.size() == 1 && digits[0] == 0;
 }
 
 std::string big_integer::to_string() const {
@@ -441,7 +431,6 @@ void big_integer::normalize() {
 }
 
 ui big_integer::div(const ui& b) {
-    big_integer tmp(b);
     ull propagate = 0;
     for (size_t i = digits.size(); i--;) {
         ull temp = digits[i] + (propagate << 32u);
@@ -488,7 +477,6 @@ void big_integer::sub(const big_integer& b) {
         digits[i] -= tmp;
     }
     for (; propagate; ++i) {
-        assert(i < digits.size());
         propagate = (ui) (digits[i] == 0);
         digits[i] -= 1;
     }

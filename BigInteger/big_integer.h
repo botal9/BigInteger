@@ -7,15 +7,15 @@
 #include <algorithm>
 #include <functional>
 #include <iomanip>
-#include "vector.h"
+#include "data.h"
 
-struct big_integer {
-    char sign;
-    vector<unsigned int> digits;
+typedef data uint_array;
 
+class big_integer {
+public:
     big_integer();
     big_integer(int);
-    big_integer(char sign, vector<unsigned int> digits);
+    big_integer(char sign, uint_array const& digits);
     explicit big_integer(const std::string&);
     big_integer(big_integer &&) = default;
     big_integer(const big_integer&) = default;
@@ -64,6 +64,9 @@ struct big_integer {
 
     std::string to_string() const;
 private:
+    char sign;
+    uint_array digits;
+
     void normalize();
     bool is_zero() const;
     big_integer reverse_bits();
