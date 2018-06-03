@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include <vector>
 #include <string>
 #include <cstdlib>
@@ -9,13 +8,11 @@
 #include <iomanip>
 #include "data.h"
 
-typedef data uint_array;
-
 class big_integer {
 public:
     big_integer();
     big_integer(int);
-    big_integer(char sign, uint_array const& digits);
+    big_integer(char sign, data const& digits);
     explicit big_integer(const std::string&);
     big_integer(big_integer &&) = default;
     big_integer(const big_integer&) = default;
@@ -65,7 +62,7 @@ public:
     std::string to_string() const;
 private:
     char sign;
-    uint_array digits;
+    data digits;
 
     void normalize();
     bool is_zero() const;
@@ -73,7 +70,7 @@ private:
     big_integer to_signed();
     big_integer to_unsigned();
     friend big_integer bitwise_operator(const big_integer&, const big_integer&,
-                                 const std::function<unsigned int(unsigned int, unsigned int)>&);
+                                        const std::function<unsigned int(unsigned int, unsigned int)>&);
     bool less_than(const big_integer &) const;
     void mul(const unsigned int& number);
     void add(const unsigned int& number);

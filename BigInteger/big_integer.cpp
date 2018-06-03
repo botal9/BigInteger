@@ -5,6 +5,8 @@
 typedef unsigned int ui;
 typedef unsigned long long ull;
 
+typedef data uint_array;
+
 big_integer::big_integer() {
     sign = 1;
     digits.push_back(0);
@@ -71,7 +73,7 @@ big_integer operator-(const big_integer& a, const big_integer& b) {
             ui propagate = 0;
             for (size_t i = 0; i < b.digits.size(); i++) {
                 ull result = (ull) a.digits[i] -
-                                            (ull) b.digits[i] - propagate;
+                             (ull) b.digits[i] - propagate;
                 propagate = (ui) (a.digits[i] < (ull) b.digits[i] + propagate);
                 digits[i] = (ui) result;
             }
@@ -108,7 +110,8 @@ big_integer operator*(const big_integer& a, const big_integer& b) {
             ++pointer;
         }
         if (digits.size() <= pointer) {
-            digits.push_back(0);        }
+            digits.push_back(0);
+        }
         digits[pointer] += propagate;
         pointer = (++pt_copy);
     }
@@ -118,7 +121,6 @@ big_integer operator*(const big_integer& a, const big_integer& b) {
 big_integer operator/(const big_integer& a, const big_integer& b) {
     assert(!b.is_zero());
     unsigned long long const MX = 4294967296u; // max unsigned int + 1
-
     big_integer copy_a(a);
     big_integer copy_b(b);
     if (b.digits.size() == 1) {
@@ -187,56 +189,59 @@ big_integer operator^(const big_integer& a, const big_integer& b) {
 
 big_integer operator<<(const big_integer& a, int b) {
     assert(b >= 0);
-    if (a.sign < 0) {
-        big_integer copy_a = ~a;
-        copy_a = (copy_a << b) + 1;
-        copy_a.sign = -1;
-        return copy_a;
+    if (b == 0) {
+        return a;
     }
-    ull propagate = 0;
-    ull result = 0;
-    uint_array digits((ui)b / 32 + a.digits.size(), 0);
+    size_t cnt = (ui)b / 32;
+    uint_array digits(a.digits.size() + cnt, 0);
     for (size_t i = 0; i < a.digits.size(); ++i) {
-        digits[i + (ui)b / 32] = a.digits[i];
+        digits[i + cnt] = a.digits[i];
     }
+    b %= 32;
     if (b > 0) {
-        for (ui &digit : digits) {
-            result = ((ull) digit << (ui)b);
-            digit = (ui)(result + propagate);
+        ull propagate = 0;
+        ull result = 0;
+        for (size_t i = cnt; i < digits.size(); ++i) {
+            result = ((ull) digits[i] << (ui)b) + propagate;
+            digits[i] = (ui)result;
             propagate = (ui)(result >> 32u);
         }
+        if (propagate != 0) {
+            digits.push_back((ui)propagate);
+        }
     }
-    if (propagate != 0) {
-        digits.push_back((ui)propagate);
-    }
-    return big_integer(1, digits);
+    return big_integer(a.sign, digits);
 }
 
 big_integer operator>>(const big_integer& a, int b) {
     assert(b >= 0);
+    if (b == 0) {
+        return a;
+    }
     if (a.sign < 0) {
         big_integer copy_a = ~a;
         copy_a = (copy_a >> b) + 1;
         copy_a.sign = -1;
         return copy_a;
     }
-    ull propagate = 0;
-    ull result = 0;
     size_t cnt = (ui)b / 32;
-    uint_array digits(a.digits.end() - a.digits.begin() + cnt);
+    uint_array digits(a.digits.size() - cnt);
     for (size_t i = cnt; i < a.digits.size(); ++i) {
         digits[i - cnt] = a.digits[i];
     }
     b %= 32;
     if (b > 0) {
+        ull propagate = 0;
+        ull result = 0;
         for (size_t i = digits.size(); i--;) {
-            ui cur = digits[i] & ((1u << (ui)b) - 1);
+            ui tmp = digits[i] & ((1u << (ui)b) - 1);
             result = (digits[i] >> (ui)b);
             digits[i] = (ui)(result + (propagate << (ui)(32 - b)));
-            propagate = cur;
+            propagate = tmp;
         }
     }
-    return big_integer(1, digits);
+    big_integer ans(1, digits);
+    return ans;
 }
 
 big_integer& big_integer::operator+=(const big_integer& b) {
