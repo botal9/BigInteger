@@ -158,7 +158,7 @@ big_integer operator/(const big_integer& a, const big_integer& b) {
         divider.mul(tmp);
         while (dividend.less_than(divider)) {
             --tmp;
-            divider -= copy_b;
+            divider.sub(copy_b);
         }
         dividend.sub(divider);
         for (size_t j = sz_b; j--;) {

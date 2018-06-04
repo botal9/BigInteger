@@ -50,9 +50,8 @@ data::~data() {
     }
 }
 
-data& data::operator=(data const& other) {
-    data tmp(other);
-    swap(tmp);
+data& data::operator=(data other) {
+    swap(other);
     return *this;
 }
 
@@ -70,7 +69,7 @@ void data::assign(size_t n, unsigned int value) {
         if (n > _data.vec._capacity) {
             size_t capacity = make_capacity(n);
             auto* tmp = new unsigned int[capacity];
-            _data.vec.ptr = std::shared_ptr<unsigned int>(tmp, std::default_delete<unsigned int[]>());
+            _data.vec.ptr.reset(tmp, std::default_delete<unsigned int[]>());
             _data.vec._capacity = capacity;
         }
         std::fill(_data.vec.ptr.get(), _data.vec.ptr.get() + n, value);
@@ -108,7 +107,7 @@ unsigned int const& data::back() const {
     return *(get_data() + _size - 1);
 }
 
-void data::push_back(unsigned int const &value) {
+void data::push_back(unsigned int value) {
     make_unique();
     if (is_array && _size == DEFAULT_SIZE) {
         size_t capacity = make_capacity(DEFAULT_SIZE + 1);
@@ -121,7 +120,7 @@ void data::push_back(unsigned int const &value) {
         size_t capacity = make_capacity(_size + 1);
         auto* tmp = new unsigned int[capacity];
         memcpy(tmp, _data.vec.ptr.get(), _size * sizeof(unsigned int));
-        _data.vec.ptr = std::shared_ptr<unsigned int>(tmp, std::default_delete<unsigned int[]>());
+        _data.vec.ptr.reset(tmp, std::default_delete<unsigned int[]>());
         _data.vec._capacity = capacity;
     }
     (*this)[_size++] = value;
@@ -185,11 +184,7 @@ size_t data::make_capacity(size_t n) {
 }
 
 unsigned int* data::get_data() const {
-    if (is_array) {
-        return const_cast<unsigned int*>(_data.arr);
-    } else {
-        return _data.vec.ptr.get();
-    }
+    return is_array ? const_cast<unsigned int*>(_data.arr) : _data.vec.ptr.get();
 }
 
 void data::make_unique() {
@@ -198,5 +193,5 @@ void data::make_unique() {
     }
     auto tmp = new unsigned int[_data.vec._capacity];
     memcpy(tmp, _data.vec.ptr.get(), _data.vec._capacity * sizeof(unsigned int));
-    _data.vec.ptr = std::shared_ptr<unsigned int>(tmp, std::default_delete<unsigned int[]>());
+    _data.vec.ptr.reset(tmp, std::default_delete<unsigned int[]>());
 }

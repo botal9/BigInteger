@@ -24,7 +24,7 @@ public:
 
     data(data&& other) = default;
 
-    data& operator=(data const& other);
+    data& operator=(data other);
 
     ~data();
 
@@ -38,7 +38,7 @@ public:
     unsigned int const* end() const;
 
 
-    void push_back(unsigned int const& value);
+    void push_back(unsigned int value);
 
     void pop_back();
 
