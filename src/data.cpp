@@ -6,6 +6,8 @@
 #include <cstring>
 #include <cassert>
 
+//data::data() : _size(0), is_array(true) {}
+
 data::data(size_t n) : data(n, 0) {}
 
 data::data(size_t n, unsigned int value) : _size(n) {
@@ -41,7 +43,6 @@ data& data::operator=(data other) {
 }
 
 void data::assign(size_t n, unsigned int value) {
-    make_unique();
     *this = data(n, value);
 }
 

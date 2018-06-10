@@ -63,8 +63,8 @@ public:
     friend bool operator==(data const& a, data const& b);
 
 private:
-    bool is_array;
-    size_t _size;
+    size_t _size = 0;
+    bool is_array = true;
 
     struct vector {
         size_t _capacity = DEFAULT_CAPACITY;
