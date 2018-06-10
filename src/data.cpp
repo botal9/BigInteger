@@ -6,22 +6,9 @@
 #include <cstring>
 #include <cassert>
 
-data::data(size_t n) {
-    _size = n;
-    if (n > DEFAULT_SIZE) {
-        size_t capacity = make_capacity(_size);
-        auto tmp = new unsigned int[capacity];
-        new (&_data.vec) vector(capacity, std::shared_ptr<unsigned int>(tmp, std::default_delete<unsigned int[]>()));
-        std::fill(_data.vec.ptr.get(), _data.vec.ptr.get() + _size, 0);
-        is_array = false;
-    } else {
-        std::fill(_data.arr, _data.arr + _size, 0);
-        is_array = true;
-    }
-}
+data::data(size_t n) : data(n, 0) {}
 
-data::data(size_t n, unsigned int value) {
-    _size = n;
+data::data(size_t n, unsigned int value) : _size(n) {
     if (n > DEFAULT_SIZE) {
         size_t capacity = make_capacity(_size);
         auto tmp = new unsigned int[capacity];
@@ -34,9 +21,7 @@ data::data(size_t n, unsigned int value) {
     }
 }
 
-data::data(data const& other) {
-    _size = other._size;
-    is_array = other.is_array;
+data::data(data const& other) : _size(other._size), is_array(other.is_array) {
     if (is_array) {
         memcpy(_data.arr, other._data.arr, _size * sizeof(unsigned int));
     } else {
@@ -57,24 +42,7 @@ data& data::operator=(data other) {
 
 void data::assign(size_t n, unsigned int value) {
     make_unique();
-    if (is_array && n > DEFAULT_SIZE) {
-        size_t capacity = make_capacity(n);
-        auto* tmp = new unsigned int[capacity];
-        new (&_data.vec) vector(capacity, std::shared_ptr<unsigned int>(tmp, std::default_delete<unsigned int[]>()));
-        std::fill(_data.vec.ptr.get(), _data.vec.ptr.get() + n, value);
-        is_array = false;
-    } else if (is_array) {
-        std::fill(_data.arr, _data.arr + n, value);
-    } else {
-        if (n > _data.vec._capacity) {
-            size_t capacity = make_capacity(n);
-            auto* tmp = new unsigned int[capacity];
-            _data.vec.ptr.reset(tmp, std::default_delete<unsigned int[]>());
-            _data.vec._capacity = capacity;
-        }
-        std::fill(_data.vec.ptr.get(), _data.vec.ptr.get() + n, value);
-    }
-    _size = n;
+    *this = data(n, value);
 }
 
 
