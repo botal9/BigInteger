@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <vector>
 #include <utility>
-#include <gtest/gtest.h>
+#include <test/gtest/gtest.h>
 
 #include "src/big_integer.h"
 
